@@ -1,93 +1,136 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TextInput, Image } from 'react-native';
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TextInput, Animated, TouchableOpacity } from 'react-native';
+import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Logo from '../components/Logo';
+import InfoCard from '../components/InfoCard';
+import BottomCard from '../components/BottomCard';
+import MapDisplay from '../components/MapDisplay';
+import TabMenu, { TabItem } from '../components/TabMenu';
+import SearchBar from '../components/SearchBar';
+
+// Dados simulados para os diferentes serviços
+const SERVICES_DATA = [
+  {
+    id: 'restaurante_popular',
+    title: 'Restaurante Popular',
+    description: 'São equipamentos públicos de segurança alimentar criados para oferecer refeições saudáveis, balanceadas e de qualidade a preços muito acessíveis ou gratuitamente.',
+    address: 'R. Barão de Maceió, 2-46 - Centro, Maceió - AL, 57020-360',
+    hours: ['Segunda a sexta-feira', '10:00 às 14:00'],
+    coordinate: { latitude: -9.665984, longitude: -35.735275 },
+    imageUri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop',
+  },
+  {
+    id: 'cozinha_comunitaria',
+    title: 'Cozinha Comunitária',
+    description: 'Unidades que visam garantir alimentação adequada e saudável para a população em situação de vulnerabilidade, oferecendo refeições diárias gratuitas ou a preço simbólico.',
+    address: 'Rua do Sol, 123 - Centro, Maceió - AL',
+    hours: ['Segunda a sábado', '11:00 às 13:30'],
+    coordinate: { latitude: -9.663111, longitude: -35.737111 },
+    imageUri: 'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=2070&auto=format&fit=crop',
+  },
+  {
+    id: 'banco_alimentos',
+    title: 'Banco de Alimentos',
+    description: 'Central de captação e distribuição de alimentos provenientes de doações, evitando o desperdício e encaminhando para instituições assistenciais cadastradas.',
+    address: 'Av. Fernandes Lima, 400 - Farol, Maceió - AL',
+    hours: ['Segunda a sexta-feira', '08:00 às 17:00'],
+    coordinate: { latitude: -9.645000, longitude: -35.730000 },
+    imageUri: 'https://images.unsplash.com/photo-1593113554162-8e1cb160100f?q=80&w=2070&auto=format&fit=crop',
+  },
+  {
+    id: 'horta_comunitaria',
+    title: 'Horta Comunitária',
+    description: 'Espaço para cultivo coletivo de hortaliças e plantas medicinais, promovendo integração social, educação ambiental e geração de renda.',
+    address: 'Av. Menino Marcelo, S/N - Serraria, Maceió - AL',
+    hours: ['Todos os dias', '06:00 às 18:00'],
+    coordinate: { latitude: -9.580000, longitude: -35.750000 },
+    // sem imagem para testar o fallback da Logo
+  }
+];
+
+const TAB_ITEMS: TabItem[] = SERVICES_DATA.map(s => ({
+  id: s.id,
+  title: s.title.replace(' ', '\n'), // Quebra de linha para ficar igual ao layout original
+}));
 
 export default function PrincipalScreen() {
+  const [isOpen, setIsOpen] = useState(true);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [cardHeight, setCardHeight] = useState(0);
+  
+  const [selectedServiceId, setSelectedServiceId] = useState(SERVICES_DATA[0].id);
+
+  const selectedService = SERVICES_DATA.find(s => s.id === selectedServiceId) || SERVICES_DATA[0];
+
+  const toggleCard = () => {
+    const distance = cardHeight > 0 ? cardHeight : 150;
+    Animated.timing(slideAnim, {
+      toValue: isOpen ? distance : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setIsOpen(!isOpen);
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <FontAwesome5 name="user-circle" size={28} color="#4caf50" />
+          <Ionicons name="person-circle-outline" size={36} color="#4caf50" />
           <Text style={styles.greeting}>Olá Usuário!</Text>
         </View>
         <Logo size={110} />
-        <MaterialIcons name="mail-outline" size={28} color="#333" style={styles.mailIcon} />
+        <FontAwesome name="envelope" size={24} color="#333" style={styles.mailIcon} />
       </View>
 
-      {/* Tabs Menu */}
-      <View style={styles.tabsContainer}>
-        <View style={styles.tabItem}>
-          <Text style={styles.tabText}>Cozinha{'\n'}Comunitária</Text>
-        </View>
-        <View style={[styles.tabItem, styles.tabActive]}>
-          <Text style={[styles.tabText, styles.tabTextActive]}>Restaurante{'\n'}Popular</Text>
-        </View>
-        <View style={styles.tabItem}>
-          <Text style={styles.tabText}>Banco de{'\n'}Alimentos</Text>
-        </View>
-        <View style={styles.menuIconContainer}>
-          <MaterialIcons name="menu" size={24} color="#333" />
-        </View>
-      </View>
+      {/* Tabs Menu Componentizado */}
+      <TabMenu 
+        items={TAB_ITEMS}
+        selectedId={selectedServiceId}
+        onSelect={setSelectedServiceId}
+      />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop' }} 
-            style={styles.infoImage} 
-          />
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoTitle}>Restaurante Popular</Text>
-            <Text style={styles.infoDescription}>
-              São equipamentos públicos de segurança alimentar criados para oferecer refeições saudáveis, balanceadas e de qualidade a preços muito acessíveis ou gratuitamente.
-            </Text>
-          </View>
-        </View>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        
+        <InfoCard 
+          title={selectedService.title}
+          description={selectedService.description}
+          imageUri={selectedService.imageUri}
+        />
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <TextInput 
-            style={styles.searchInput} 
-            placeholder="Pesquisar..." 
-            placeholderTextColor="#888"
-          />
-          <MaterialIcons name="search" size={24} color="#888" style={styles.searchIcon} />
-        </View>
+        {/* Search Component */}
+        <SearchBar 
+          data={SERVICES_DATA} 
+          onSelect={setSelectedServiceId} 
+        />
 
-        {/* Map Placeholder */}
-        <View style={styles.mapContainer}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop' }} 
-            style={styles.mapImage} 
-          />
-          <View style={styles.mapPin}>
-            <FontAwesome5 name="map-marker-alt" size={24} color="#e53935" />
-          </View>
-        </View>
+        <MapDisplay 
+          coordinate={selectedService.coordinate}
+          markerText={selectedService.title}
+        />
 
-        {/* Bottom Section */}
-        <View style={styles.bottomSection}>
-          <View style={styles.hideButtonContainer}>
-            <MaterialIcons name="arrow-drop-down" size={24} color="#333" />
-          </View>
-          <View style={styles.bottomCard}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop' }} 
-              style={styles.bottomCardImage} 
-            />
-            <View style={styles.bottomCardContent}>
-              <Text style={styles.bottomCardTitle}>Restaurante Popular de Maceió</Text>
-              <Text style={styles.bottomCardLabel}>Endereço: <Text style={styles.bottomCardText}>R. Barão de Maceió, 2-46 - Centro, Maceió - AL, 57020-360</Text></Text>
-              <Text style={styles.bottomCardLabel}>Horário de funcionamento:</Text>
-              <Text style={styles.bottomCardText}>Segunda a sexta-feira</Text>
-              <Text style={styles.bottomCardText}>10:00 às 14:00</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
+
+      {/* Bottom Section */}
+      <Animated.View style={[styles.bottomSection, { transform: [{ translateY: slideAnim }] }]}>
+        <TouchableOpacity activeOpacity={0.8} onPress={toggleCard} style={styles.hideButtonContainer}>
+          <MaterialIcons name={isOpen ? "arrow-drop-down" : "arrow-drop-up"} size={24} color="#333" />
+        </TouchableOpacity>
+        
+        <View onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)} style={styles.bottomCardWrapper}>
+          <BottomCard 
+            title={selectedService.title}
+            address={selectedService.address}
+            hours={selectedService.hours}
+            imageUri={selectedService.imageUri}
+          />
+        </View>
+      </Animated.View>
     </View>
   );
 }
@@ -95,16 +138,16 @@ export default function PrincipalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F2DF',
+    backgroundColor: '#FEF7E0',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50, // safe area estimate
+    paddingTop: 50,
     paddingBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#FEF7E0',
   },
   userInfo: {
     flexDirection: 'row',
@@ -119,160 +162,28 @@ const styles = StyleSheet.create({
   mailIcon: {
     marginLeft: 10,
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#E8832A',
-    opacity: 0.8,
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(0,0,0,0.1)',
-  },
-  tabActive: {
-    backgroundColor: '#E8832A',
-    opacity: 1,
-  },
-  tabText: {
-    fontSize: 10,
-    color: '#333',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  tabTextActive: {
-    fontWeight: 'bold',
-  },
-  menuIconContainer: {
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E8832A',
-  },
   scrollContent: {
     padding: 16,
   },
-  infoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    flexDirection: 'row',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  infoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  infoTextContainer: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  infoDescription: {
-    fontSize: 11,
-    color: '#666',
-    lineHeight: 14,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E3E3AE',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 14,
-    color: '#333',
-  },
-  searchIcon: {
-    marginLeft: 8,
-  },
-  mapContainer: {
-    height: 180,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 16,
-    position: 'relative',
-    borderWidth: 2,
-    borderColor: '#add8e6',
-  },
-  mapImage: {
-    width: '100%',
-    height: '100%',
-  },
-  mapPin: {
-    position: 'absolute',
-    top: '50%',
-    left: '60%',
-    transform: [{ translateX: -12 }, { translateY: -24 }],
-  },
   bottomSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    marginBottom: 20,
   },
   hideButtonContainer: {
-    backgroundColor: '#F7F2DF',
-    paddingHorizontal: 24,
-    paddingVertical: 0,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: '#e0d8b0',
+    backgroundColor: '#F7DDB9',
+    paddingHorizontal: 32,
+    paddingVertical: 4,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     marginBottom: -1,
     zIndex: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottomCard: {
-    backgroundColor: '#F7F2DF',
-    borderRadius: 8,
-    padding: 12,
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#e0d8b0',
+  bottomCardWrapper: {
     width: '100%',
-  },
-  bottomCardImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  bottomCardContent: {
-    flex: 1,
-  },
-  bottomCardTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  bottomCardLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 2,
-  },
-  bottomCardText: {
-    fontWeight: 'normal',
-    color: '#555',
   },
 });

@@ -66,7 +66,7 @@ export default function CadastroScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F2DF',
+    backgroundColor: '#FEF7E0',
   },
   scrollContent: {
     padding: 24,

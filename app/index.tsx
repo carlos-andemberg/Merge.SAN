@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.2)',
   },
   bottomSheet: {
-    backgroundColor: '#F7F2DF',
+    backgroundColor: '#FEF7E0',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 30,
