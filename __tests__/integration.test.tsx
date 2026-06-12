@@ -8,10 +8,16 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: jest.fn(),
   }),
+  usePathname: jest.fn(() => '/'),
 }));
 
 jest.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: jest.fn(),
+}));
+
+jest.mock('firebase/firestore', () => ({
+  doc: jest.fn(),
+  getDoc: jest.fn(() => Promise.resolve({ exists: () => false, data: () => ({}) })),
 }));
 
 jest.mock('../config/firebaseConfig', () => ({
