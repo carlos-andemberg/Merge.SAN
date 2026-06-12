@@ -29,7 +29,8 @@
       "lang": "pt-BR"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

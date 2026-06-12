@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
 
-interface CampoTextoProps extends TextInputProps {
+interface CampoProps extends TextInputProps {
   label: string;
 }
 
-export default function CampoTexto({ label, ...rest }: CampoTextoProps) {
+export default function Campo({ label, ...rest }: CampoProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -21,20 +21,22 @@ export default function CampoTexto({ label, ...rest }: CampoTextoProps) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    maxWidth: 338,
     marginBottom: 12,
   },
   label: {
-    fontSize: 12,
-    color: '#333',
-    marginBottom: 4,
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#31302C',
+    marginBottom: 6,
+    fontFamily: 'Inter_500Medium',
   },
   input: {
-    backgroundColor: '#E3E3AE',
+    backgroundColor: '#D5DA8A',
     borderRadius: 6,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    height: 36,
+    fontSize: 13,
     color: '#333',
+    fontFamily: 'Inter_500Medium',
   },
 });

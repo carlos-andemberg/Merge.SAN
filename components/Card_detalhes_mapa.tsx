@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Image } from 'react-native';
-import Logo from './Logo';
+import Logo_app from './Logo_app';
 
-export interface BottomCardProps {
+export interface CardDetalhesMapaProps {
   title: string;
   address: string;
   hours: string[];
   imageUri?: string;
 }
 
-export default function BottomCard({ title, address, hours, imageUri }: BottomCardProps) {
+export default function Card_detalhes_mapa({ title, address, hours, imageUri }: CardDetalhesMapaProps) {
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
@@ -19,14 +19,14 @@ export default function BottomCard({ title, address, hours, imageUri }: BottomCa
   return (
     <View style={styles.bottomCard}>
       {imageUri && !imageError ? (
-        <Image 
-          source={{ uri: imageUri }} 
-          style={styles.bottomCardImage} 
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.bottomCardImage}
           onError={() => setImageError(true)}
         />
       ) : (
         <View style={[styles.infoImageContainer, { width: 110, height: 110 }]}>
-          <Logo size={90} />
+          <Logo_app size={90} />
         </View>
       )}
       <View style={styles.bottomCardContent}>
@@ -43,7 +43,7 @@ export default function BottomCard({ title, address, hours, imageUri }: BottomCa
 
 const styles = StyleSheet.create({
   bottomCard: {
-    backgroundColor: '#F7DDB9',
+    backgroundColor: '#F7DEB9',
     padding: 16,
     flexDirection: 'row',
     width: '100%',
@@ -73,19 +73,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomCardTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 13,
+    color: '#31302C',
     marginBottom: 6,
+    fontFamily: 'Inter_600SemiBold',
   },
   bottomCardLabel: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#2C2B29',
     marginTop: 4,
+    fontFamily: 'Inter_600SemiBold',
   },
   bottomCardText: {
-    fontWeight: 'normal',
-    color: '#333',
+    color: '#2C2B29',
+    fontFamily: 'Inter_400Regular',
   },
 });

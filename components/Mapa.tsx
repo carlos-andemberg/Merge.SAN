@@ -3,7 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-export interface MapDisplayProps {
+export interface MapaProps {
   coordinate: {
     latitude: number;
     longitude: number;
@@ -11,7 +11,7 @@ export interface MapDisplayProps {
   markerText: string;
 }
 
-export default function MapDisplay({ coordinate, markerText }: MapDisplayProps) {
+export default function Mapa({ coordinate, markerText }: MapaProps) {
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function MapDisplay({ coordinate, markerText }: MapDisplayProps) 
 
   return (
     <View style={styles.mapContainer}>
-      <MapView 
+      <MapView
         ref={mapRef}
         style={styles.mapImage}
         scrollEnabled={false}
@@ -44,7 +44,7 @@ export default function MapDisplay({ coordinate, markerText }: MapDisplayProps) 
         <Marker coordinate={coordinate}>
           <View style={styles.customMarker}>
             <Text style={styles.markerText}>{markerText}</Text>
-            <FontAwesome5 name="map-marker-alt" size={32} color="#cc0000" />
+            <FontAwesome5 name="map-marker-alt" size={32} color="#A64141" />
           </View>
         </Marker>
       </MapView>
@@ -54,13 +54,16 @@ export default function MapDisplay({ coordinate, markerText }: MapDisplayProps) 
 
 const styles = StyleSheet.create({
   mapContainer: {
-    height: 320,
+    width: '100%',
+    maxWidth: 338,
+    alignSelf: 'center',
+    height: 300,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 16,
     position: 'relative',
     borderWidth: 2,
-    borderColor: '#add8e6',
+    borderColor: '#94AE9F',
   },
   mapImage: {
     width: '100%',
@@ -70,13 +73,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerText: {
-    color: '#cc0000',
-    fontSize: 11,
-    fontWeight: 'bold',
+    color: '#A64141',
+    fontSize: 12,
     textAlign: 'center',
     marginBottom: 2,
     textShadowColor: 'rgba(255, 255, 255, 0.9)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 4,
+    fontFamily: 'Inter_700Bold',
   },
 });

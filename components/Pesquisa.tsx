@@ -7,17 +7,17 @@ export interface SearchItem {
   title: string;
 }
 
-export interface SearchBarProps {
+export interface PesquisaProps {
   data: SearchItem[];
   onSelect: (id: string) => void;
 }
 
-export default function SearchBar({ data, onSelect }: SearchBarProps) {
+export default function Pesquisa({ data, onSelect }: PesquisaProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  const filteredData = data.filter(item => 
+  const filteredData = data.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -29,12 +29,12 @@ export default function SearchBar({ data, onSelect }: SearchBarProps) {
   };
 
   return (
-    <View style={styles.container} importantForAutofill="noExcludeDescendants">
+    <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <TextInput 
+        <TextInput
           ref={inputRef}
-          style={styles.searchInput} 
-          placeholder="Pesquisar..." 
+          style={styles.searchInput}
+          placeholder="Pesquisar..."
           placeholderTextColor="#888"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -54,8 +54,8 @@ export default function SearchBar({ data, onSelect }: SearchBarProps) {
         <View style={styles.recommendationsContainer}>
           {filteredData.length > 0 ? (
             filteredData.map(item => (
-              <TouchableOpacity 
-                key={item.id} 
+              <TouchableOpacity
+                key={item.id}
                 style={styles.recommendationItem}
                 onPress={() => handleSelect(item.id)}
               >
@@ -78,30 +78,34 @@ const styles = StyleSheet.create({
     zIndex: 10,
     position: 'relative',
     marginBottom: 16,
+    width: '100%',
+    maxWidth: 338,
+    alignSelf: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3E3AE',
+    backgroundColor: '#D5DA8A',
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 40,
+    height: 36,
   },
   searchInput: {
     flex: 1,
     height: '100%',
     fontSize: 14,
-    color: '#333',
+    color: '#31302C',
+    fontFamily: 'Inter_500Medium',
   },
   searchIcon: {
     marginLeft: 8,
   },
   recommendationsContainer: {
     position: 'absolute',
-    top: 45,
+    top: 40,
     left: 0,
     right: 0,
-    backgroundColor: '#E3E3AE',
+    backgroundColor: '#D5DA8A',
     borderRadius: 8,
     paddingVertical: 4,
     shadowColor: '#000',
@@ -119,6 +123,7 @@ const styles = StyleSheet.create({
   },
   recommendationText: {
     fontSize: 14,
-    color: '#333',
+    color: '#31302C',
+    fontFamily: 'Inter_400Regular',
   },
 });

@@ -1,135 +1,313 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TextInput, Animated, TouchableOpacity } from 'react-native';
-import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import Logo from '../components/Logo';
-import InfoCard from '../components/InfoCard';
-import BottomCard from '../components/BottomCard';
-import MapDisplay from '../components/MapDisplay';
-import TabMenu, { TabItem } from '../components/TabMenu';
-import SearchBar from '../components/SearchBar';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Animated, TouchableOpacity, Linking, Platform, ActivityIndicator, Alert } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import Cabecalho from '../components/Cabecalho';
+import Card_detalhes_mapa from '../components/Card_detalhes_mapa';
+import Card_Equipamento from '../components/Card_Equipamento';
+import Mapa from '../components/Mapa';
+import Botao from '../components/Botao';
+import Menu_Dropdown, { TabItem } from '../components/Menu_Dropdown';
+import Pesquisa from '../components/Pesquisa';
+import { auth, db } from '../config/firebaseConfig';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getGeminiRecommendations } from '../utils/geminiAPI';
+import * as Location from 'expo-location';
 
-// Dados simulados para os diferentes serviços
-const SERVICES_DATA = [
-  {
-    id: 'restaurante_popular',
-    title: 'Restaurante Popular',
-    description: 'São equipamentos públicos de segurança alimentar criados para oferecer refeições saudáveis, balanceadas e de qualidade a preços muito acessíveis ou gratuitamente.',
-    address: 'R. Barão de Maceió, 2-46 - Centro, Maceió - AL, 57020-360',
-    hours: ['Segunda a sexta-feira', '10:00 às 14:00'],
-    coordinate: { latitude: -9.665984, longitude: -35.735275 },
-    imageUri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop',
-  },
-  {
-    id: 'cozinha_comunitaria',
-    title: 'Cozinha Comunitária',
-    description: 'Unidades que visam garantir alimentação adequada e saudável para a população em situação de vulnerabilidade, oferecendo refeições diárias gratuitas ou a preço simbólico.',
-    address: 'Rua do Sol, 123 - Centro, Maceió - AL',
-    hours: ['Segunda a sábado', '11:00 às 13:30'],
-    coordinate: { latitude: -9.663111, longitude: -35.737111 },
-    imageUri: 'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=2070&auto=format&fit=crop',
-  },
-  {
-    id: 'banco_alimentos',
-    title: 'Banco de Alimentos',
-    description: 'Central de captação e distribuição de alimentos provenientes de doações, evitando o desperdício e encaminhando para instituições assistenciais cadastradas.',
-    address: 'Av. Fernandes Lima, 400 - Farol, Maceió - AL',
-    hours: ['Segunda a sexta-feira', '08:00 às 17:00'],
-    coordinate: { latitude: -9.645000, longitude: -35.730000 },
-    imageUri: 'https://images.unsplash.com/photo-1593113554162-8e1cb160100f?q=80&w=2070&auto=format&fit=crop',
-  },
-  {
-    id: 'horta_comunitaria',
-    title: 'Horta Comunitária',
-    description: 'Espaço para cultivo coletivo de hortaliças e plantas medicinais, promovendo integração social, educação ambiental e geração de renda.',
-    address: 'Av. Menino Marcelo, S/N - Serraria, Maceió - AL',
-    hours: ['Todos os dias', '06:00 às 18:00'],
-    coordinate: { latitude: -9.580000, longitude: -35.750000 },
-    // sem imagem para testar o fallback da Logo
-  }
+const LOADING_PHRASES = [
+  "Buscando locais de alimentação próximos...",
+  "Mapeando assistência social na sua região...",
+  "Estamos configurando para que você tenha uma boa experiência...",
+  "Falta muito pouco! Salvando os dados...",
 ];
 
-const TAB_ITEMS: TabItem[] = SERVICES_DATA.map(s => ({
-  id: s.id,
-  title: s.title.replace(' ', '\n'), // Quebra de linha para ficar igual ao layout original
-}));
+const COLORS = ['#F28322', '#44A641', '#0378A6'];
 
 export default function PrincipalScreen() {
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [retrying, setRetrying] = useState(false);
+  const [userCity, setUserCity] = useState('');
+  const [servicesData, setServicesData] = useState<any[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [mapCoords, setMapCoords] = useState<{latitude: number, longitude: number} | null>(null);
+  const [loadingMap, setLoadingMap] = useState(false);
+  
+  const [loadingIndex, setLoadingIndex] = useState(0);
+
   const [isOpen, setIsOpen] = useState(true);
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const buttonOpacityAnim = useRef(new Animated.Value(0)).current;
   const [cardHeight, setCardHeight] = useState(0);
-  
-  const [selectedServiceId, setSelectedServiceId] = useState(SERVICES_DATA[0].id);
 
-  const selectedService = SERVICES_DATA.find(s => s.id === selectedServiceId) || SERVICES_DATA[0];
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (retrying) {
+      interval = setInterval(() => {
+        setLoadingIndex((prev) => (prev + 1) % LOADING_PHRASES.length);
+      }, 3000);
+    } else {
+      setLoadingIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [retrying]);
+
+  const fetchUserData = async () => {
+    setLoadingInitial(true);
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUserCity(data.cidade || '');
+          if (data.locaisSugeridos && Array.isArray(data.locaisSugeridos) && data.locaisSugeridos.length > 0) {
+            const mapped = data.locaisSugeridos.map((item: any, index: number) => ({
+              id: index.toString(),
+              title: item.nome || 'Local S/ Nome',
+              description: item.descricao || '',
+              address: item.endereco || '',
+              hours: item.horario || ['Sem horário'],
+              coordinate: item.coordinate || { latitude: 0, longitude: 0 },
+              imageUri: item.imageUri
+            }));
+            setServicesData(mapped);
+            if (mapped.length > 0) {
+              setSelectedServiceId(mapped[0].id);
+            }
+          } else {
+            setServicesData([]);
+          }
+        }
+      } catch (error) {
+        console.log("Erro ao buscar dados na principal:", error);
+      }
+    }
+    setLoadingInitial(false);
+  };
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const handleRetryAI = async () => {
+    if (!userCity) {
+      Alert.alert('Erro', 'Sua cidade não está definida no cadastro.');
+      return;
+    }
+    setRetrying(true);
+    const user = auth.currentUser;
+    if (user) {
+      const novosLocais = await getGeminiRecommendations(userCity);
+      if (novosLocais.length > 0) {
+        try {
+          await updateDoc(doc(db, 'users', user.uid), {
+            locaisSugeridos: novosLocais
+          });
+          await fetchUserData(); // Recarrega os dados na tela
+        } catch (e) {
+          console.log("Erro ao atualizar", e);
+        }
+      } else {
+        Alert.alert("Aviso", "A IA não conseguiu encontrar locais no momento. Tente novamente mais tarde.");
+      }
+    }
+    setRetrying(false);
+  };
+
+  const selectedService = servicesData.find(s => s.id === selectedServiceId) || servicesData[0];
+
+  useEffect(() => {
+    const geocodeAddress = async () => {
+      if (!selectedService || !selectedService.address) return;
+
+      // Otimização: Se a coordenada já existe e não é 0,0, pula o geocoding
+      if (selectedService.coordinate && selectedService.coordinate.latitude !== 0) {
+        setMapCoords(selectedService.coordinate);
+        return;
+      }
+
+      setLoadingMap(true);
+      try {
+        const results = await Location.geocodeAsync(selectedService.address);
+        let newCoords = { latitude: -9.665984, longitude: -35.735275 }; // Fallback Maceió
+        if (results.length > 0) {
+          newCoords = {
+            latitude: results[0].latitude,
+            longitude: results[0].longitude
+          };
+        }
+        
+        setMapCoords(newCoords);
+
+        // Salva no Firestore para as próximas vezes (Desempenho)
+        const user = auth.currentUser;
+        if (user) {
+           const updatedServices = [...servicesData];
+           const index = updatedServices.findIndex(s => s.id === selectedService.id);
+           if (index !== -1) {
+             updatedServices[index].coordinate = newCoords;
+             setServicesData(updatedServices);
+
+             const locaisParaSalvar = updatedServices.map(item => ({
+               nome: item.title,
+               descricao: item.description,
+               endereco: item.address,
+               horario: item.hours,
+               coordinate: item.coordinate,
+               imageUri: item.imageUri || ""
+             }));
+
+             await updateDoc(doc(db, 'users', user.uid), {
+               locaisSugeridos: locaisParaSalvar
+             });
+           }
+        }
+      } catch (error) {
+        console.log('Erro de geocoding', error);
+        setMapCoords({ latitude: -9.665984, longitude: -35.735275 });
+      }
+      setLoadingMap(false);
+    };
+    geocodeAddress();
+  }, [selectedService]);
+
+  const TAB_ITEMS: TabItem[] = servicesData.map(s => ({
+    id: s.id,
+    title: s.title.replace(' ', '\n'), // Quebra de linha
+  }));
+
+  const openRouteInMaps = () => {
+    if (!selectedService) return;
+    const query = encodeURIComponent(`${selectedService.title}, ${selectedService.address}`);
+    
+    const url = Platform.select({
+      ios: `maps:0,0?q=${query}`,
+      android: `geo:0,0?q=${query}`
+    });
+
+    if (url) {
+      Linking.canOpenURL(url).then(supported => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+        }
+      });
+    }
+  };
 
   const toggleCard = () => {
     const distance = cardHeight > 0 ? cardHeight : 150;
-    Animated.timing(slideAnim, {
-      toValue: isOpen ? distance : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: isOpen ? distance : 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonOpacityAnim, {
+        toValue: isOpen ? 1 : 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start();
     setIsOpen(!isOpen);
   };
 
+  const currentColor = COLORS[loadingIndex % COLORS.length];
+
+  if (loadingInitial) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#F28322" />
+        <Text style={{ marginTop: 10, fontFamily: 'Inter_500Medium', color: '#31302C' }}>Carregando dados...</Text>
+      </View>
+    );
+  }
+
+  // FALLBACK SE A IA FALHOU E O ARRAY VEIO VAZIO
+  if (servicesData.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Cabecalho />
+        <View style={styles.fallbackContainer}>
+          <Text style={styles.fallbackTitle}>Nenhum local encontrado</Text>
+          <Text style={styles.fallbackText}>Aconteceu uma falha de comunicação com a Inteligência Artificial durante o seu cadastro ou não há dados disponíveis para a sua região.</Text>
+          
+          {retrying ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={currentColor} style={{ marginBottom: 12 }} />
+              <Text style={[styles.loadingText, { color: currentColor }]}>
+                {LOADING_PHRASES[loadingIndex]}
+              </Text>
+            </View>
+          ) : (
+            <Botao title="Tentar carregar locais por IA" onPress={handleRetryAI} />
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <Ionicons name="person-circle-outline" size={36} color="#4caf50" />
-          <Text style={styles.greeting}>Olá Usuário!</Text>
-        </View>
-        <Logo size={110} />
-        <FontAwesome name="envelope" size={24} color="#333" style={styles.mailIcon} />
-      </View>
+      <Cabecalho />
 
-      {/* Tabs Menu Componentizado */}
-      <TabMenu 
+      <Menu_Dropdown
         items={TAB_ITEMS}
         selectedId={selectedServiceId}
         onSelect={setSelectedServiceId}
       />
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        
-        <InfoCard 
+        <Card_Equipamento
           title={selectedService.title}
           description={selectedService.description}
           imageUri={selectedService.imageUri}
         />
 
-        {/* Search Component */}
-        <SearchBar 
-          data={SERVICES_DATA} 
-          onSelect={setSelectedServiceId} 
+        <Pesquisa
+          data={servicesData}
+          onSelect={setSelectedServiceId}
         />
 
-        <MapDisplay 
-          coordinate={selectedService.coordinate}
-          markerText={selectedService.title}
-        />
-
+        {loadingMap || !mapCoords ? (
+          <View style={[styles.mapContainerFallback, { height: 300, marginBottom: 16 }]}>
+            <ActivityIndicator size="large" color="#F28322" />
+            <Text style={{ marginTop: 10, fontFamily: 'Inter_500Medium' }}>Buscando coordenadas...</Text>
+          </View>
+        ) : (
+          <Mapa
+            coordinate={mapCoords}
+            markerText={selectedService.title}
+          />
+        )}
       </ScrollView>
 
       {/* Bottom Section */}
       <Animated.View style={[styles.bottomSection, { transform: [{ translateY: slideAnim }] }]}>
         <TouchableOpacity activeOpacity={0.8} onPress={toggleCard} style={styles.hideButtonContainer}>
-          <MaterialIcons name={isOpen ? "arrow-drop-down" : "arrow-drop-up"} size={24} color="#333" />
+          <MaterialIcons name={isOpen ? "arrow-drop-down" : "arrow-drop-up"} size={30} color="#31302C" />
         </TouchableOpacity>
-        
+
         <View onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)} style={styles.bottomCardWrapper}>
-          <BottomCard 
+          <Card_detalhes_mapa
             title={selectedService.title}
             address={selectedService.address}
             hours={selectedService.hours}
             imageUri={selectedService.imageUri}
           />
         </View>
+      </Animated.View>
+
+      <Animated.View 
+        style={[styles.floatingButtonContainer, { opacity: buttonOpacityAnim }]}
+        pointerEvents={isOpen ? 'none' : 'auto'}
+      >
+        <Botao title="Ir até o local" onPress={openRouteInMaps} />
       </Animated.View>
     </View>
   );
@@ -140,30 +318,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FEF7E0',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#FEF7E0',
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greeting: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  mailIcon: {
-    marginLeft: 10,
-  },
   scrollContent: {
     padding: 16,
+  },
+  fallbackContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    gap: 15,
+  },
+  mapContainerFallback: {
+    width: '100%',
+    maxWidth: 338,
+    alignSelf: 'center',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#94AE9F',
+    backgroundColor: '#FEF7E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fallbackTitle: {
+    fontSize: 22,
+    fontFamily: 'Inter_700Bold',
+    color: '#31302C',
+    textAlign: 'center',
+  },
+  fallbackText: {
+    fontSize: 16,
+    fontFamily: 'Inter_400Regular',
+    color: '#31302C',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   bottomSection: {
     position: 'absolute',
@@ -174,10 +361,10 @@ const styles = StyleSheet.create({
   },
   hideButtonContainer: {
     backgroundColor: '#F7DDB9',
-    paddingHorizontal: 32,
-    paddingVertical: 4,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 0,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
     marginBottom: -1,
     zIndex: 2,
     alignItems: 'center',
@@ -185,5 +372,24 @@ const styles = StyleSheet.create({
   },
   bottomCardWrapper: {
     width: '100%',
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 25,
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    minHeight: 80,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });

@@ -1,14 +1,15 @@
+// Force Metro Cache Refresh
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Image } from 'react-native';
-import Logo from './Logo';
+import Logo_app from './Logo_app';
 
-export interface InfoCardProps {
+export interface CardEquipamentoProps {
   title: string;
   description: string;
   imageUri?: string;
 }
 
-export default function InfoCard({ title, description, imageUri }: InfoCardProps) {
+export default function Card_Equipamento({ title, description, imageUri }: CardEquipamentoProps) {
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
@@ -18,14 +19,14 @@ export default function InfoCard({ title, description, imageUri }: InfoCardProps
   return (
     <View style={styles.infoCard}>
       {imageUri && !imageError ? (
-        <Image 
-          source={{ uri: imageUri }} 
-          style={styles.infoImage} 
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.infoImage}
           onError={() => setImageError(true)}
         />
       ) : (
         <View style={[styles.infoImageContainer, { width: 120, height: 120 }]}>
-          <Logo size={100} />
+          <Logo_app size={100} />
         </View>
       )}
       <View style={styles.infoTextContainer}>
@@ -38,7 +39,7 @@ export default function InfoCard({ title, description, imageUri }: InfoCardProps
 
 const styles = StyleSheet.create({
   infoCard: {
-    backgroundColor: '#F7DDB9',
+    backgroundColor: '#F7DEB9',
     padding: 16,
     marginHorizontal: -16,
     marginTop: -16,
@@ -71,14 +72,15 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#31302C',
     marginBottom: 8,
+    fontFamily: 'Inter_600SemiBold',
   },
   infoDescription: {
-    fontSize: 12,
-    color: '#333',
+    fontSize: 14,
+    color: '#2C2B29',
     lineHeight: 18,
     textAlign: 'justify',
+    fontFamily: 'Inter_400Regular',
   },
 });

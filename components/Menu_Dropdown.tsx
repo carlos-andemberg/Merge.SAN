@@ -7,13 +7,13 @@ export interface TabItem {
   title: string;
 }
 
-export interface TabMenuProps {
+export interface MenuDropdownProps {
   items: TabItem[];
   selectedId: string;
   onSelect: (id: string) => void;
 }
 
-export default function TabMenu({ items, selectedId, onSelect }: TabMenuProps) {
+export default function Menu_Dropdown({ items, selectedId, onSelect }: MenuDropdownProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [orderedItems, setOrderedItems] = useState(items);
 
@@ -22,22 +22,21 @@ export default function TabMenu({ items, selectedId, onSelect }: TabMenuProps) {
       setOrderedItems(items);
     }
   }, [items]);
-  
+
   const mainItems = orderedItems.slice(0, 3);
   const extraItems = orderedItems.slice(3);
 
   const handleSelect = (id: string) => {
     const clickedIndex = orderedItems.findIndex(i => i.id === id);
     if (clickedIndex >= 3) {
-      // Está no menu dropdown. Troca com o item atualmente selecionado nas abas principais.
       const currentSelectedIndex = orderedItems.findIndex(i => i.id === selectedId);
       const swapIndex = currentSelectedIndex !== -1 && currentSelectedIndex < 3 ? currentSelectedIndex : 2;
-      
+
       const newOrdered = [...orderedItems];
       const temp = newOrdered[swapIndex];
       newOrdered[swapIndex] = newOrdered[clickedIndex];
       newOrdered[clickedIndex] = temp;
-      
+
       setOrderedItems(newOrdered);
     }
 
@@ -51,8 +50,8 @@ export default function TabMenu({ items, selectedId, onSelect }: TabMenuProps) {
         {mainItems.map((item) => {
           const isActive = item.id === selectedId;
           return (
-            <TouchableOpacity 
-              key={item.id} 
+            <TouchableOpacity
+              key={item.id}
               style={[styles.tabItem, isActive && styles.tabActive]}
               onPress={() => handleSelect(item.id)}
               activeOpacity={0.7}
@@ -64,8 +63,8 @@ export default function TabMenu({ items, selectedId, onSelect }: TabMenuProps) {
           );
         })}
         {extraItems.length > 0 && (
-          <TouchableOpacity 
-            style={styles.menuIconContainer} 
+          <TouchableOpacity
+            style={styles.menuIconContainer}
             onPress={() => setIsMenuOpen(true)}
             activeOpacity={0.7}
           >
@@ -86,8 +85,8 @@ export default function TabMenu({ items, selectedId, onSelect }: TabMenuProps) {
               {extraItems.map((item) => {
                 const isActive = item.id === selectedId;
                 return (
-                  <TouchableOpacity 
-                    key={item.id} 
+                  <TouchableOpacity
+                    key={item.id}
                     style={[styles.dropdownItem, isActive && styles.dropdownItemActive]}
                     onPress={() => handleSelect(item.id)}
                   >
@@ -107,16 +106,17 @@ export default function TabMenu({ items, selectedId, onSelect }: TabMenuProps) {
 
 const styles = StyleSheet.create({
   container: {
-    zIndex: 10, // Ensure dropdown overlays properly if we didn't use Modal
+    zIndex: 10,
+    width: '100%',
   },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#E8832A',
     opacity: 0.9,
+    height: 50,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
@@ -127,19 +127,19 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   tabText: {
-    fontSize: 11,
-    color: '#333',
+    fontSize: 13,
+    color: '#31302C',
     textAlign: 'center',
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
   },
   tabTextActive: {
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
   },
   menuIconContainer: {
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E8832A',
+    backgroundColor: '#F28322',
   },
   modalOverlay: {
     flex: 1,
@@ -148,9 +148,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   dropdownMenu: {
-    marginTop: 130, // Adjust this based on header height
+    marginTop: 160, 
     marginRight: 16,
-    backgroundColor: '#E8832A', // Mesmo padrão do menu principal
+    backgroundColor: '#F28322', 
     borderRadius: 8,
     paddingVertical: 8,
     minWidth: 200,
@@ -165,10 +165,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   dropdownItemActive: {
-    backgroundColor: '#DA761E', // Mesma cor da aba ativa
+    backgroundColor: '#DA761E', 
   },
   dropdownText: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: 13,
+    color: '#31302C',
+    fontFamily: 'Inter_500Medium',
   },
 });
